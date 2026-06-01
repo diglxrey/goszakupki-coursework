@@ -1,15 +1,3 @@
--- =====================================================================
--- Система государственных закупок «GosZakupki»
--- Файл 02: Представления (VIEW) и функции (FUNCTION)
--- СУБД: PostgreSQL
--- =====================================================================
-
--- =====================================================================
--- ПРЕДСТАВЛЕНИЯ (минимум 3)
--- =====================================================================
-
--- 1) Полная карточка тендера: данные тендера + заказчик + кол-во заявок
---    + минимальная предложенная цена
 DROP VIEW IF EXISTS v_tender_cards CASCADE;
 CREATE VIEW v_tender_cards AS
 SELECT
@@ -33,13 +21,9 @@ GROUP BY t.id, u.id;
 
 COMMENT ON VIEW v_tender_cards IS 'Карточки тендеров с заказчиком и агрегатами по заявкам';
 
--- 2) Рейтинг поставщиков: сколько заявок подано, сколько выиграно,
---    сколько контрактов и на какую сумму
 DROP VIEW IF EXISTS v_supplier_rating CASCADE;
 CREATE VIEW v_supplier_rating AS
--- Заявки и контракты агрегируются в отдельных подзапросах, чтобы при
--- соединении строки не перемножались (иначе SUM(final_price) задваивается,
--- когда у поставщика несколько заявок и при этом есть контракт)
+
 SELECT
     u.id                                       AS supplier_id,
     u.name                                     AS supplier_name,
@@ -68,7 +52,6 @@ ORDER BY u.id;
 
 COMMENT ON VIEW v_supplier_rating IS 'Рейтинг поставщиков по числу заявок, побед и сумме контрактов';
 
--- 3) Сводка по контрактам: тендер + поставщик + заказчик + экономия бюджета
 DROP VIEW IF EXISTS v_contracts_summary CASCADE;
 CREATE VIEW v_contracts_summary AS
 SELECT
@@ -92,11 +75,6 @@ JOIN users cus  ON cus.id = c.customer_id;
 
 COMMENT ON VIEW v_contracts_summary IS 'Сводка по контрактам с расчётом экономии бюджета';
 
--- =====================================================================
--- ФУНКЦИИ (минимум 3)
--- =====================================================================
-
--- 1) Количество заявок по конкретному тендеру
 DROP FUNCTION IF EXISTS fn_count_bids(INTEGER);
 CREATE OR REPLACE FUNCTION fn_count_bids(p_tender_id INTEGER)
 RETURNS INTEGER AS $$
@@ -112,8 +90,6 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION fn_count_bids IS 'Возвращает число заявок на указанный тендер';
 
--- 2) Минимальная предложенная цена по тендеру
---    (если заявок нет — возвращает NULL)
 DROP FUNCTION IF EXISTS fn_min_bid_price(INTEGER);
 CREATE OR REPLACE FUNCTION fn_min_bid_price(p_tender_id INTEGER)
 RETURNS NUMERIC AS $$
@@ -129,8 +105,6 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION fn_min_bid_price IS 'Возвращает минимальную предложенную цену по тендеру';
 
--- 3) Процент экономии бюджета по тендеру относительно начальной цены
---    (по выигравшей заявке; если победитель не выбран — NULL)
 DROP FUNCTION IF EXISTS fn_tender_economy_percent(INTEGER);
 CREATE OR REPLACE FUNCTION fn_tender_economy_percent(p_tender_id INTEGER)
 RETURNS NUMERIC AS $$
